@@ -1,0 +1,53 @@
+{
+  "name": "post-it-react",
+  "version": "1.0.9",
+  "description": "Post-It is a React library that allows you to create and manage sticky notes easily and customizable. It simplifies the creation of interactive user interfaces with notes that can be moved, edited, customized, and deleted easily.",
+  "keywords": [
+    "sticky notes",
+    "post it",
+    "post it react",
+    "react",
+    "typescript",
+    "javascript",
+    "notes",
+    "add notes",
+    "notas adhesivas",
+    "react library",
+    "library"
+  ],
+  "author": "Nicolás Agüero",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolasAguero99/post-it-library"
+  },
+  "type": "module",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/react": "^18.3.3",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "rollup": "^4.19.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  }
+}
