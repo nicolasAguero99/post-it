@@ -1,14 +1,14 @@
-import React from 'react'
+import React, { type JSX } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
 // Styles
 import './index.css'
 
 // Types
-import { type PostItPropsType } from './types/types'
+import type { PostItPropsType } from './types/types.d.ts'
 
 // Constants
-import { ACTIONS_NAMES, ACTION_BUTTON_CLASS, ACTION_FIXED_CLASS, BENT_CORNER_CLASS, DEFAULT_PLACEHOLDER, INITIAL_HEIGHT_INPUT, INITIAL_WIDTH_INPUT, LATER_HEIGHT_INPUT, LATER_WIDTH_INPUT, LENGTH_LETTER_MODIFIER, PINNED_CLASS, POST_IT_ACTIONS_CLASS, POST_IT_ACTIONS_HOVER_CLASS, POST_IT_CLASS_NAME, POST_IT_DEFAULT_CLASS, POST_IT_TEXT_CLASS } from './constants/constants'
+import { ACTIONS_NAMES, ACTION_BUTTON_CLASS, ACTION_FIXED_CLASS, BENT_CORNER_CLASS, DEFAULT_PLACEHOLDER, INITIAL_HEIGHT_INPUT, INITIAL_WIDTH_INPUT, LATER_HEIGHT_INPUT, LATER_WIDTH_INPUT, LENGTH_LETTER_MODIFIER, LIMIT_TEXT_LENGTH, PINNED_CLASS, POST_IT_ACTIONS_CLASS, POST_IT_ACTIONS_HOVER_CLASS, POST_IT_CLASS_NAME, POST_IT_DEFAULT_CLASS, POST_IT_TEXT_CLASS } from './constants/constants'
 
 // Components
 import IconAction from './components/icon-action'
@@ -18,11 +18,12 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
   const [currentText, setCurrentText] = useState(text ?? customDefaultText)
   const [sizes, setSizes] = useState({ width: INITIAL_WIDTH_INPUT, height: INITIAL_HEIGHT_INPUT })
   const [selectedId, setSelectedId] = useState('')
-  const [startOffset, setStartOffset] = useState({ x: 0, y: 0 })
-  const [lastAttributesPostIt, setLastAttributesPostIt] = useState({ text: '', width: 0, height: 0 })
+  const [startOffset, setStartOffset] = useState({ x: 0, y: 0, lastX: 0, lastY: 0 })
+  const [lastAttributesPostIt, setLastAttributesPostIt] = useState({ text: '', width: 0, height: 0, readOnly: false })
   const [postItModes, setPostItModes] = useState({ isEditing: false, isDragging: false, isBlocked: false })
   const [currentAction, setCurrentAction] = useState<keyof typeof ACTIONS_NAMES>(action as keyof typeof ACTIONS_NAMES)
   const [currentPosition, setCurrentPosition] = useState(position ?? { x: 0, y: 0 })
+  const [isParentRelative, setIsParentRelative] = useState(false)
 
   const defaultAction = useMemo(() => {
     if (ACTIONS_NAMES[action as keyof typeof ACTIONS_NAMES] === undefined && !Array.isArray(action)) return ACTIONS_NAMES.none
@@ -37,6 +38,7 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
 
   const [actionElement, actionFunction, actionClass, actionStyle] = useMemo(() => {
     if (!Array.isArray(action)) return [null, null, null, null]
+    if (action[2] === '') action[2] = null
     return [...action]
   }, [])
 
@@ -48,6 +50,19 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
     if (typeof fontFamily !== 'string') fontFamily = ''
     return [fontSize, fontWeight, fontFamily]
   }, [])
+
+  useEffect(() => {
+    setStartOffset({
+      ...startOffset,
+      lastX: position.x,
+      lastY: position.y
+    })
+  }, [])
+
+  useEffect(() => {
+    const isReadOnly = currentText.length >= LIMIT_TEXT_LENGTH
+    setCurrentText(isReadOnly ? currentText.slice(0, LIMIT_TEXT_LENGTH) : currentText)
+  }, [currentText])
 
   useEffect(() => {
     const exitDraggingMode = (e: KeyboardEvent) => {
@@ -66,12 +81,15 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     const target = e.target as HTMLDivElement
     if (!target.classList.contains(POST_IT_CLASS_NAME)) return
-    const rect = target.getBoundingClientRect()
     const currentId = target.id
+    const isPositionRelative = window.getComputedStyle(target.parentElement as HTMLDivElement)?.getPropertyValue('position') === 'relative'
+    setIsParentRelative(isPositionRelative)
     setStartOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      ...startOffset,
+      x: e.clientX,
+      y: e.clientY
     })
+
     if (e.ctrlKey) {
       if (disableDeletePostIt) return
       if (postItList.length === 0) {
@@ -91,28 +109,47 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     if (disableDragPostIt) return
     if (!postItModes.isDragging) return
-    const x = e.clientX - startOffset.x
-    const y = e.clientY - startOffset.y
+    const target = e.target as HTMLDivElement
+    const { width, height } = target.getBoundingClientRect()
+    const { width: parentWidth, height: parentHeight } = (target.parentElement as HTMLDivElement).getBoundingClientRect()
+
+    let x = e.clientX - startOffset.x + startOffset.lastX
+    let y = e.clientY - startOffset.y + startOffset.lastY
+
+    if (isParentRelative) {
+      if (x < 0 || x > parentWidth - width) x = x < 0 ? 0 : parentWidth - width
+      if (y < 0 || y > parentHeight - height) y = y < 0 ? 0 : parentHeight - height
+    }
+
     if (postItList.length === 0) {
       setCurrentPosition({ x, y })
       return
     }
+
     const newPostItList = postItList.map((postIt) => {
       if (postIt.id !== selectedId) return postIt
       return { ...postIt, position: { x, y } }
     })
+
     setPostItList(newPostItList)
   }
 
-  const handleMouseUp = (): void => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
     if (disableDragPostIt) return
+    setStartOffset({
+      ...startOffset,
+      lastX: (e.target as HTMLDivElement).offsetLeft,
+      lastY: (e.target as HTMLDivElement).offsetTop
+    })
     setSelectedId('')
     setPostItModes({ ...postItModes, isDragging: false })
   }
 
   const handleType = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-    const currentLength = e.target.value.length
-    if (currentLength > 200) return
+    if (!e.target) return
+    const currentLength = (e.target as HTMLTextAreaElement).value.length
+    if (currentLength > LIMIT_TEXT_LENGTH) return
+
     if (currentLength === 0) setSizes({ width: INITIAL_WIDTH_INPUT, height: INITIAL_HEIGHT_INPUT })
     else if (currentLength === 1) setSizes({ width: LATER_WIDTH_INPUT, height: INITIAL_HEIGHT_INPUT })
 
@@ -139,7 +176,7 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
       })
       setPostItList(newPostItList)
       setPostItModes({ ...postItModes, isEditing: false })
-      setLastAttributesPostIt({ text: newText, width: sizes.width, height: sizes.height })
+      setLastAttributesPostIt({ ...lastAttributesPostIt, text: newText, width: sizes.width, height: sizes.height })
     }
     if (e.key === 'Escape') {
       if (lastAttributesPostIt.text !== '') {
@@ -155,6 +192,13 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
       setCurrentText(lastAttributesPostIt.text)
       setSizes({ width: lastAttributesPostIt.width, height: lastAttributesPostIt.height })
     }
+  }
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>): void => {
+    e.preventDefault()
+    const pasteText = e.clipboardData.getData('text')
+    const newText = currentText + pasteText
+    setCurrentText(newText.length > LIMIT_TEXT_LENGTH ? newText.slice(0, LIMIT_TEXT_LENGTH) : newText)
   }
 
   const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>): void => {
@@ -208,7 +252,7 @@ export default function PostIt({ id, position, text = '', className = POST_IT_DE
               </button>
             }
           </div>
-          : <textarea onChange={handleType} onFocus={handleFocus} onKeyDown={handleKeyTextArea} id={id}
+          : <textarea onChange={handleType} onFocus={handleFocus} onKeyDown={handleKeyTextArea} onPaste={handlePaste} id={id}
             className={`${POST_IT_CLASS_NAME} ${className} ${postItModes.isDragging ? ' is-dragging' : ''}`}
             style={{ position: 'absolute', top: postItList.length > 0 ? position.y : currentPosition.y, left: postItList.length > 0 ? position.x : currentPosition.x, backgroundColor: fill, color, borderRadius: rounded > 0 ? rounded : '', width: `${sizes.width}px`, height: `${sizes.height}px` }} placeholder={randomPlaceholder} value={currentText} autoFocus />
       }

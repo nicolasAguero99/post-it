@@ -12,6 +12,7 @@ export const INITIAL_HEIGHT_INPUT = 94
 export const LATER_WIDTH_INPUT = 234
 export const LATER_HEIGHT_INPUT = 40
 export const LENGTH_LETTER_MODIFIER = 50
+export const LIMIT_TEXT_LENGTH = 200
 export const POST_IT_RANDOM_COLORS = ['#FFD700', '#FF6347', '#FF69B4', '#FF4500', '#FF8C00', '#FF1493']
 export const DEFAULT_PLACEHOLDER = 'Write something...'
 export const ACTIONS_NAMES = {

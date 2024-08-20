@@ -1,6 +1,6 @@
 {
   "name": "post-it-react",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Post-It is a React library that allows you to create and manage sticky notes easily and customizable. It simplifies the creation of interactive user interfaces with notes that can be moved, edited, customized, and deleted easily.",
   "keywords": [
     "sticky notes",
@@ -19,12 +19,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nicolasAguero99/post-it-library"
+    "url": "https://github.com/nicolasAguero99/post-it-library",
+    "homepage": "https://post-it-library.vercel.app"
   },
   "type": "module",
-  "main": "lib/index.cjs.js",
-  "module": "lib/index.esm.js",
-  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/index.esm.js",
+      "require": "./lib/index.cjs.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
   "files": [
     "lib",
     "LICENSE",

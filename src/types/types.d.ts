@@ -14,7 +14,7 @@ export interface PostItPropsType {
   stylePinned?: boolean
   customPlaceholder?: string | string[]
   customDefaultText?: string
-  action?: 'none' | 'copy' | 'delete' | 'block' | [JSX.Element, ((...args: T[]) => T), string, React.CSSProperties?]
+  action?: 'none' | 'copy' | 'delete' | 'block' | [JSX.Element, ((...args: T[]) => T), string | null, React.CSSProperties?]
   actionFixed?: boolean
   disableEditPostIt?: boolean
   disableDeletePostIt?: boolean
